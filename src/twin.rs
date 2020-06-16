@@ -127,7 +127,7 @@ pub struct DeviceTwin {
     pub status_update_time: String,
     pub tags: HashMap<String, String>,
     pub version: i64,
-    pub x509_thumb_print: X509ThumbPrint,
+    pub x509_thumbprint: X509ThumbPrint,
 }
 
 #[derive(Deserialize)]
@@ -145,7 +145,7 @@ pub struct ModuleTwin {
     pub status: Status,
     pub status_update_time: String,
     pub version: i64,
-    pub x509_thumb_print: X509ThumbPrint,
+    pub x509_thumbprint: X509ThumbPrint,
 }
 
 pub struct TwinBuilder {
@@ -195,7 +195,6 @@ impl<'a> TwinManager<'a> {
     where
         for<'de> T: Deserialize<'de>,
     {
-        println!("Getting twin for uri: {}", uri);
         let https = HttpsConnector::new();
         let client = Client::builder().build::<_, hyper::Body>(https);
         let request = Request::builder()
@@ -250,12 +249,13 @@ impl<'a> TwinManager<'a> {
         self.get_twin(uri).await
     }
 
-    pub async fn get_module_twin<T>(
+    pub async fn get_module_twin<S, T>(
         &self,
-        device_id: T,
+        device_id: S,
         module_id: T,
     ) -> Result<ModuleTwin, Box<dyn std::error::Error>>
     where
+        S: Into<String>,
         T: Into<String>,
     {
         let uri = format!(
@@ -287,13 +287,14 @@ impl<'a> TwinManager<'a> {
         self.update_twin(uri, Method::PATCH, twin_patch).await
     }
 
-    pub async fn update_module_twin<T>(
+    pub async fn update_module_twin<S, T>(
         &self,
-        device_id: T,
+        device_id: S,
         module_id: T,
         twin_patch: serde_json::Value,
     ) -> Result<ModuleTwin, Box<dyn std::error::Error>>
     where
+        S: Into<String>,
         T: Into<String>,
     {
         let uri = format!(
@@ -325,13 +326,14 @@ impl<'a> TwinManager<'a> {
         self.update_twin(uri, Method::PUT, twin_patch).await
     }
 
-    pub async fn replace_module_twin<T>(
+    pub async fn replace_module_twin<S, T>(
         &self,
-        device_id: T,
+        device_id: S,
         module_id: T,
         twin_patch: serde_json::Value,
     ) -> Result<ModuleTwin, Box<dyn std::error::Error>>
     where
+        S: Into<String>,
         T: Into<String>,
     {
         let uri = format!(

@@ -8,6 +8,6 @@ pub mod iothub;
 pub mod query;
 pub mod twin;
 
-pub use iothub::IoTHubService;
 pub use configuration::modulescontent::{EdgeModuleBuilder, ModulesContent, ModulesContentBuilder};
+pub use iothub::IoTHubService;
 use iothub::API_VERSION;
