@@ -1,11 +1,11 @@
+use std::collections::HashMap;
+
 use bytes::buf::BufExt as _;
-use chrono::prelude::*;
 use hyper::{Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 use serde::de::{self};
 use serde::{Deserialize, Deserializer};
 use serde_json::json;
-use std::collections::HashMap;
 
 use crate::{IoTHubService, API_VERSION};
 
@@ -93,13 +93,13 @@ impl<'de> Deserialize<'de> for Status {
 #[derive(Deserialize)]
 pub struct DeviceCapabilities {
     #[serde(rename = "iotEdge")]
-    iotedge: bool,
+    pub iotedge: bool,
 }
 
 #[derive(Deserialize)]
-pub struct x509ThumbPrint {
-    primary_thumbprint: Option<String>,
-    secondary_thumbprint: Option<String>,
+pub struct X509ThumbPrint {
+    pub primary_thumbprint: Option<String>,
+    pub secondary_thumbprint: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -127,7 +127,7 @@ pub struct DeviceTwin {
     pub status_update_time: String,
     pub tags: HashMap<String, String>,
     pub version: i64,
-    pub x509_thumb_print: x509ThumbPrint,
+    pub x509_thumb_print: X509ThumbPrint,
 }
 
 #[derive(Deserialize)]
@@ -145,7 +145,7 @@ pub struct ModuleTwin {
     pub status: Status,
     pub status_update_time: String,
     pub version: i64,
-    pub x509_thumb_print: x509ThumbPrint,
+    pub x509_thumb_print: X509ThumbPrint,
 }
 
 pub struct TwinBuilder {
@@ -223,7 +223,7 @@ impl<'a> TwinManager<'a> {
         let client = Client::builder().build::<_, hyper::Body>(https);
         let request = Request::builder()
             .uri(uri)
-            .method(Method::PATCH)
+            .method(method)
             .header("Authorization", &self.iothub_service.sas_token)
             .header("Content-Type", "application/json")
             .body(Body::from(serde_json::to_string(&twin_patch)?))?;
