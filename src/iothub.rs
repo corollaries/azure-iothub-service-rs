@@ -3,9 +3,7 @@
 //! A library used for communicating with a given IoT Hub. At the moment
 //! only some parts of the IoT Hub Service are implemented.
 
-use std::error;
-use std::fmt;
-use std::result::Result as StdResult;
+
 use std::io::Read;
 
 use base64::{decode, encode_config};
@@ -13,17 +11,17 @@ use bytes::buf::BufExt as _;
 use chrono;
 use hmac::{Hmac, Mac, NewMac};
 use hyper_tls::HttpsConnector;
-use hyper::{Body, Client, Method, Request, Response, StatusCode};
-use serde::Deserialize;
+use hyper::{Body, Client, Method, Request, StatusCode};
 use serde_json::json;
 use sha2::Sha256;
 use url;
 
-use crate::directmethod::{DirectMethod, DirectMethodResponse};
+use crate::directmethod::{DirectMethod};
 use crate::twin::TwinManager;
 use crate::ModulesContent;
+use crate::query::QueryBuilder;
 
-pub const API_VERSION: &str = "2018-06-30";
+pub const API_VERSION: &str = "2020-03-13";
 
 /// The IoTHubService is the main entry point for communicating with the IoT Hub.
 ///
@@ -47,9 +45,9 @@ impl IoTHubService {
     /// let iothub_name = "cool-iot-hub";
     /// let sas_token = "<a generated sas token>";
     ///
-    /// let iothub = IoTHubService::new(iothub_name, sas_token);
+    /// let iothub = IoTHubService::from_sas_token(iothub_name, sas_token);
     /// ```
-    pub fn new<S>(iothub_name: S, sas_token: S) -> Self
+    pub fn from_sas_token<S>(iothub_name: S, sas_token: S) -> Self
     where
         S: Into<String>,
     {
@@ -230,7 +228,7 @@ impl IoTHubService {
     }
 
     /// Create a new module method
-    ///
+    /// 
     /// ```
     /// use azure_iothub_service::IoTHubService;
     /// 
@@ -257,6 +255,22 @@ impl IoTHubService {
             connect_time_out,
             response_time_out,
         )
+    }
+
+    /// Create a new IoT Hub query
+    ///
+    /// ```
+    /// use azure_iothub_service::IoTHubService;
+    /// 
+    /// # let connection_string = "HostName=cool-iot-hub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=YSB2ZXJ5IHNlY3VyZSBrZXkgaXMgaW1wb3J0YW50Cg==";
+    /// let iothub = IoTHubService::from_connection_string(connection_string, 3600).expect("Failed to create the IoTHubService!");
+    /// let query = iothub.build_query()
+    ///             .select("something")
+    ///             .from("a table")
+    ///             .build();
+    /// ```
+    pub fn build_query(&self) -> QueryBuilder<'_> {
+        QueryBuilder::new(&self)
     }
 
     /// Apply a new modules configuration on a given edge device
@@ -304,13 +318,11 @@ impl IoTHubService {
 
 #[cfg(test)]
 mod tests {
-    use crate::IoTHubService;
-
     #[test]
     fn from_connectionstring_success() -> Result<(), Box<dyn std::error::Error>> {
         use crate::IoTHubService;
         let connection_string = "HostName=cool-iot-hub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=YSB2ZXJ5IHNlY3VyZSBrZXkgaXMgaW1wb3J0YW50Cg==";
-        let iothub_service = IoTHubService::from_connection_string(connection_string, 3600)?;
+        let _ = IoTHubService::from_connection_string(connection_string, 3600)?;
         Ok(())
     }
 
@@ -318,24 +330,24 @@ mod tests {
     fn from_connectionstring_should_fail_on_incorrect_hostname() -> Result<(), Box<dyn std::error::Error>> {
         use crate::IoTHubService;
         let connection_string = "HostName==cool-iot-hub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=YSB2ZXJ5IHNlY3VyZSBrZXkgaXMgaW1wb3J0YW50Cg==";
-        let iothub_service = IoTHubService::from_connection_string(connection_string, 3600).is_err();
+        let _ = IoTHubService::from_connection_string(connection_string, 3600).is_err();
 
         let connection_string = "HostName=cool-iot-hub.azure-;SharedAccessKeyName=iothubowner;SharedAccessKey=YSB2ZXJ5IHNlY3VyZSBrZXkgaXMgaW1wb3J0YW50Cg==";
-        let iothub_service = IoTHubService::from_connection_string(connection_string, 3600).is_err();
+        let _ = IoTHubService::from_connection_string(connection_string, 3600).is_err();
         Ok(())
     }
 
     #[test]
     fn from_connectionstring_should_fail_on_empty_connection_string() -> Result<(), Box<dyn std::error::Error>> {
         use crate::IoTHubService;
-        let iothub_service = IoTHubService::from_connection_string("", 3600).is_err();
+        let _ = IoTHubService::from_connection_string("", 3600).is_err();
         Ok(())
     }
 
     #[test]
     fn from_connectionstring_should_fail_on_incomplete_connection_string() -> Result<(), Box<dyn std::error::Error>> {
         use crate::IoTHubService;
-        let iothub_service = IoTHubService::from_connection_string("HostName=cool-iot-hub.azure-devices.net;SharedAccessKey=YSB2ZXJ5IHNlY3VyZSBrZXkgaXMgaW1wb3J0YW50Cg==", 3600).is_err();
+        let _ = IoTHubService::from_connection_string("HostName=cool-iot-hub.azure-devices.net;SharedAccessKey=YSB2ZXJ5IHNlY3VyZSBrZXkgaXMgaW1wb3J0YW50Cg==", 3600).is_err();
         Ok(())
     }
 }

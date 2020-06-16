@@ -2,10 +2,9 @@ use bytes::buf::BufExt as _;
 use hyper::{Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 use serde_json::json;
-use std::str::FromStr;
-use std::vec::Vec;
 
 use crate::{IoTHubService, API_VERSION};
+use crate::error::{BuilderError, BuilderErrorType};
 
 pub struct Query<'a> {
     iothub_service: &'a IoTHubService,
@@ -89,21 +88,21 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
-    pub fn build(self) -> Query<'a> {
+    pub fn build(self) -> Result<Query<'a>, BuilderError>{
         let mut query: String = "".to_string();
 
         match self.select {
             Some(select_query) => {
                 query = [query, "SELECT ".to_string(), select_query].concat();
             }
-            None => {}
+            None => return Err(BuilderError::new(BuilderErrorType::MissingValue("select")))
         }
 
         match self.from {
             Some(from_query) => {
                 query = [query, " FROM ".to_string(), from_query].concat();
             }
-            None => {}
+            None => return Err(BuilderError::new(BuilderErrorType::MissingValue("from")))
         }
 
         match self.and_where {
@@ -120,10 +119,10 @@ impl<'a> QueryBuilder<'a> {
             None => {}
         }
 
-        Query {
+        Ok(Query {
             iothub_service: self.iothub_service,
             query,
-        }
+        })
     }
 }
 
@@ -132,8 +131,8 @@ mod tests {
     use crate::IoTHubService;
 
     #[test]
-    fn querybuilder_success() {
-        use crate::QueryBuilder;
+    fn querybuilder_success() -> Result<(), Box<dyn std::error::Error>> {
+        use crate::query::QueryBuilder;
         let iothub_service = IoTHubService {
             iothub_name: "test".to_string(),
             sas_token: "test".to_string(),
@@ -143,11 +142,12 @@ mod tests {
             .from("modules")
             .and_where("x == something")
             .group_by("something")
-            .build();
+            .build()?;
 
         let expected_query =
             "SELECT properties.something FROM modules WHERE x == something GROUP BY something"
                 .to_string();
         assert_eq!(expected_query, query.query);
+        Ok(())
     }
 }

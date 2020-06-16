@@ -1,0 +1,27 @@
+[package]
+name = "examples"
+version = "0.1.0"
+authors = ["corollaries"]
+edition = "2018"
+
+[[bin]]
+name="select_all_devices"
+path="query/select_all_devices.rs"
+
+[[bin]]
+name="ping"
+path="directmethod/ping.rs"
+
+[[bin]]
+name="apply_configuration"
+path="configuration/apply_configuration.rs"
+
+[[bin]]
+name="get_twin"
+path="twin/get_twin.rs"
+
+[dependencies]
+azure-iothub-service = { path=".." }
+serde_json = "1.0.41"
+tokio = { version = "0.2", features = ["full"] }
+

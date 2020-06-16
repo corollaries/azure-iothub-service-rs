@@ -58,9 +58,10 @@ impl<'a> DirectMethod<'a> {
     ///
     /// # Examples
     /// ```
-    /// use crate::IoTHubService;
+    /// # use serde_json::json;
+    /// use azure_iothub_service::IoTHubService;
     ///
-    /// let service = IotHubService::new("some", "thing");
+    /// let service = IoTHubService::from_sas_token("some-iot-hub", "sas_token");
     /// let great_method = service.create_device_method(
     ///    "SomeDeviceId",
     ///    "GreatMethod",
@@ -128,7 +129,7 @@ mod tests {
     fn directmethod_new_should_succeed() {
         use crate::directmethod::DirectMethod;
 
-        let service: IoTHubService = IoTHubService::new("test", "test");
+        let service: IoTHubService = IoTHubService::from_sas_token("test", "test");
         let direct_method = DirectMethod::new(
             &service,
             "SomeDevice".to_string(),
