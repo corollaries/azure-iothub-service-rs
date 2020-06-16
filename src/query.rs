@@ -3,8 +3,8 @@ use hyper::{Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 use serde_json::json;
 
-use crate::{IoTHubService, API_VERSION};
 use crate::error::{BuilderError, BuilderErrorType};
+use crate::{IoTHubService, API_VERSION};
 
 pub struct Query<'a> {
     iothub_service: &'a IoTHubService,
@@ -88,21 +88,21 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
-    pub fn build(self) -> Result<Query<'a>, BuilderError>{
+    pub fn build(self) -> Result<Query<'a>, BuilderError> {
         let mut query: String = "".to_string();
 
         match self.select {
             Some(select_query) => {
                 query = [query, "SELECT ".to_string(), select_query].concat();
             }
-            None => return Err(BuilderError::new(BuilderErrorType::MissingValue("select")))
+            None => return Err(BuilderError::new(BuilderErrorType::MissingValue("select"))),
         }
 
         match self.from {
             Some(from_query) => {
                 query = [query, " FROM ".to_string(), from_query].concat();
             }
-            None => return Err(BuilderError::new(BuilderErrorType::MissingValue("from")))
+            None => return Err(BuilderError::new(BuilderErrorType::MissingValue("from"))),
         }
 
         match self.and_where {

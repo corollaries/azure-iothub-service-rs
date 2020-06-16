@@ -311,12 +311,18 @@ impl Serialize for ModulesContent {
         S: Serializer,
     {
         let mut state = serializer.serialize_struct("ModulesContent", 2)?;
-        state.serialize_field("$edgeAgent", &json!({
-            "properties.desired": self.edge_agent
-        }))?;
-        state.serialize_field("$edgeHub", &json!({
-            "properties.desired": self.edge_hub
-        }))?;
+        state.serialize_field(
+            "$edgeAgent",
+            &json!({
+                "properties.desired": self.edge_agent
+            }),
+        )?;
+        state.serialize_field(
+            "$edgeHub",
+            &json!({
+                "properties.desired": self.edge_hub
+            }),
+        )?;
         state.end()
     }
 }
@@ -447,7 +453,7 @@ impl ModulesContentBuilder {
         self
     }
 
-    /// Build the ModulesContent 
+    /// Build the ModulesContent
     pub fn build(self) -> Result<ModulesContent, Box<dyn std::error::Error>> {
         let time_to_live_secs =
             self.time_to_live_secs
@@ -495,7 +501,7 @@ impl ModulesContentBuilder {
                         logging_options: logging_options,
                         registry_credentials: self.registry_credentials,
                     },
-                    runtime_type: RUNTIME_TYPE.to_string()
+                    runtime_type: RUNTIME_TYPE.to_string(),
                 },
                 system_modules: SystemModules {
                     edge_agent: EdgeAgentSettings {
@@ -626,10 +632,7 @@ mod tests {
             )
             .build()?;
 
-        assert_eq!(
-            modules_content.edge_agent.schema_version,
-            SCHEMA_VERSION
-        );
+        assert_eq!(modules_content.edge_agent.schema_version, SCHEMA_VERSION);
         assert_eq!(
             modules_content
                 .edge_agent
@@ -726,7 +729,14 @@ mod tests {
             .build()?;
 
         let edge_agent_json = serde_json::to_value(edge_agent)?;
-        assert!(edge_agent_json == test_json_file, format!("{}\n is not equal to\n {}", serde_json::to_string_pretty(&edge_agent_json)?, serde_json::to_string_pretty(&test_json_file)?));
+        assert!(
+            edge_agent_json == test_json_file,
+            format!(
+                "{}\n is not equal to\n {}",
+                serde_json::to_string_pretty(&edge_agent_json)?,
+                serde_json::to_string_pretty(&test_json_file)?
+            )
+        );
         Ok(())
     }
 }
