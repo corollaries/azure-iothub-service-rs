@@ -2,6 +2,7 @@
 #[derive(Debug, Clone)]
 pub enum BuilderErrorType {
     MissingValue(&'static str),
+    IncorrectValue(&'static str)
 }
 
 /// BuilderError struct that contains the type of error that occurred
@@ -22,6 +23,7 @@ impl std::fmt::Display for BuilderError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self.error_type {
             BuilderErrorType::MissingValue(val) => write!(f, "missing field {}", val),
+            BuilderErrorType::IncorrectValue(val) => write!(f, "incorrect value for {}", val)
         }
     }
 }
