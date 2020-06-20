@@ -12,7 +12,7 @@ use crate::{IoTHubService, API_VERSION};
 
 /// The DirectMethodResponse struct contains the response
 /// from the IoT Hub when a direct method was invoked.
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct DirectMethodResponse {
     pub status: u64,
     pub payload: serde_json::Value,

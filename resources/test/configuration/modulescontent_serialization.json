@@ -10,7 +10,7 @@
                         "TestCred": {
                             "username": "username",
                             "password": "password",
-                            "url": "url.xyz"
+                            "address": "url.xyz"
                         }
                     }
                 },
