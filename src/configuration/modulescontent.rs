@@ -366,7 +366,7 @@ pub struct RuntimeSettings {
     min_docker_version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     logging_options: Option<String>,
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     registry_credentials: HashMap<String, RegistryCredential>,
 }
 
