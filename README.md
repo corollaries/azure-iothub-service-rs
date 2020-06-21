@@ -22,7 +22,7 @@ println!("Device connection state: {}", device_twin.connection_state);
 ```rust
 let iothub_service = IoTHubService::from_private_key("some-iot-hub", "YSB2ZXJ5IHNlY3VyZSBrZXkgaXMgaW1wb3J0YW50Cg==", 3600).expect("Failed to create IoTHubService");
 let module_method = iothub_service.create_module_method("some-device", "$edgeAgent", "ping", 10, 20);
-let response = module_method.invoke(json!({})).await.expect("Failed to invoke ping on edgeAgent");
+let response = module_method.invoke::<serde_json::Value>(json!({})).await.expect("Failed to invoke ping on edgeAgent");
 
 println!("Invoking 'ping' on edgeAgent returned with: {}", response.status);
 ```
@@ -90,9 +90,9 @@ iothub_service.apply_modules_configuration("some-device", &modules_content).awai
 - [ ] Delete Module
 - [ ] Get Device 
 - [ ] Get Device Statistics
-- [X] Get Devices (via Query IoT Hub)
-- [X] Get Module (via Query IoT Hub)
-- [X] Get Modules On Device (via Query IoT Hub)
+- [ ] Get Devices 
+- [ ] Get Module 
+- [ ] Get Modules On Device 
 - [ ] Get Service Statistics
 - [ ] Purge Command Queue
 - [X] Query IoT Hub

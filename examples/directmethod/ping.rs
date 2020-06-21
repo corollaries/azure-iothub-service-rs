@@ -16,7 +16,7 @@ async fn main() {
     let module_method =
         iothub_service.create_module_method(device_id, "$edgeAgent", "ping", 10, 20);
     let response = module_method
-        .invoke(json!({}))
+        .invoke::<serde_json::Value>(json!({}))
         .await
         .expect("Failed to invoke ping on edgeAgent");
 
