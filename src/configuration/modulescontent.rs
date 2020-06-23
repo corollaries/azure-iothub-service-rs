@@ -1,5 +1,5 @@
 use serde::ser::{Serialize, SerializeStruct, Serializer};
-use serde::{Deserialize};
+use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
 
@@ -61,7 +61,7 @@ pub struct EdgeModule {
     pub image_pull_policy: Option<ImagePullPolicy>,
     #[serde(default)]
     pub env: HashMap<String, EnvironmentVariable>,
-    pub settings: ModuleSettings
+    pub settings: ModuleSettings,
 }
 
 /// The EdgeModuleBuilder can be used to build EdgeModules when creating a modules configuration
@@ -113,7 +113,7 @@ impl EdgeModuleBuilder {
         self
     }
 
-    /// Set the version for the EdgeModule 
+    /// Set the version for the EdgeModule
     ///
     /// # Example
     /// ```
@@ -154,7 +154,7 @@ impl EdgeModuleBuilder {
         self.restart_policy = Some(restart_policy);
         self
     }
-    
+
     /// Set the image pull policy for the EdgeModule
     ///
     /// # Example
@@ -177,12 +177,17 @@ impl EdgeModuleBuilder {
     ///     .environment_variable("variableOne", "someValue")
     ///     .environment_variable("variableTwo", "someValue");
     /// ```
-    pub fn environment_variable<S,T>(mut self, key: S, value: T) -> Self
+    pub fn environment_variable<S, T>(mut self, key: S, value: T) -> Self
     where
         S: Into<String>,
         T: Into<String>,
     {
-        self.env.insert(key.into(), EnvironmentVariable{value: value.into()});
+        self.env.insert(
+            key.into(),
+            EnvironmentVariable {
+                value: value.into(),
+            },
+        );
         self
     }
 
@@ -195,14 +200,13 @@ impl EdgeModuleBuilder {
     /// let mut env_map: HashMap<String, String> = HashMap::new();
     /// env_map.insert("variableOne".to_string(), "someValue".to_string());
     /// env_map.insert("variableTwo".to_string(), "someValue".to_string());
-    /// 
+    ///
     /// let edge_module_builder = EdgeModuleBuilder::new()
     ///     .environment_variables(env_map);
     /// ```
-    pub fn environment_variables(mut self, variables: HashMap<String, String>) -> Self 
-    {
+    pub fn environment_variables(mut self, variables: HashMap<String, String>) -> Self {
         for (key, value) in variables {
-            self.env.insert(key, EnvironmentVariable{value});
+            self.env.insert(key, EnvironmentVariable { value });
         }
         self
     }
@@ -289,12 +293,12 @@ impl EdgeModuleBuilder {
         };
 
         let module_create_options = match self.create_options {
-            Some(val) => {
-                match serde_json::to_string(&val) {
-                    Ok(val) => Some(val),
-                    Err(_) => {
-                        return Err(BuilderError::new(BuilderErrorType::IncorrectValue("create_options")));
-                    }
+            Some(val) => match serde_json::to_string(&val) {
+                Ok(val) => Some(val),
+                Err(_) => {
+                    return Err(BuilderError::new(BuilderErrorType::IncorrectValue(
+                        "create_options",
+                    )));
                 }
             },
             None => None,
@@ -310,8 +314,8 @@ impl EdgeModuleBuilder {
             env: self.env,
             settings: ModuleSettings {
                 image,
-                create_options: module_create_options
-            }
+                create_options: module_create_options,
+            },
         })
     }
 }
@@ -326,13 +330,17 @@ pub struct RegistryCredential {
 
 impl RegistryCredential {
     /// Create a new RegistryCredential
-    pub fn new<S,T,U>(username: S, password: T, address: U) -> Self
+    pub fn new<S, T, U>(username: S, password: T, address: U) -> Self
     where
         S: Into<String>,
         T: Into<String>,
-        U: Into<String>
+        U: Into<String>,
     {
-        Self{username: username.into(), password: password.into(), address: address.into()}
+        Self {
+            username: username.into(),
+            password: password.into(),
+            address: address.into(),
+        }
     }
 
     /// Get the username of the RegistryCredential
@@ -353,7 +361,7 @@ impl RegistryCredential {
     /// Set the username of the RegistryCredential
     pub fn set_username<S>(&mut self, username: S)
     where
-        S: Into<String>
+        S: Into<String>,
     {
         self.username = username.into();
     }
@@ -372,27 +380,24 @@ pub struct RuntimeSettings {
 
 impl RuntimeSettings {
     /// Get the minimum docker version
-    pub fn min_docker_version(&self) -> &String
-    {
+    pub fn min_docker_version(&self) -> &String {
         &self.min_docker_version
     }
 
     /// Get the logging options
-    pub fn logging_options(&self) -> &Option<String>
-    {
+    pub fn logging_options(&self) -> &Option<String> {
         &self.logging_options
     }
 
     /// Get the registry credentials
-    pub fn registry_credentials(&self) -> &HashMap<String, RegistryCredential>
-    {
+    pub fn registry_credentials(&self) -> &HashMap<String, RegistryCredential> {
         &self.registry_credentials
     }
 
     /// Set the minimum docker version
     pub fn set_min_docker_version<S>(&mut self, min_docker_version: S)
     where
-        S: Into<String>
+        S: Into<String>,
     {
         self.min_docker_version = min_docker_version.into();
     }
@@ -400,17 +405,16 @@ impl RuntimeSettings {
     /// Set the logging options
     pub fn set_logging_options<S>(&mut self, logging_options: Option<S>)
     where
-        S: Into<String>
+        S: Into<String>,
     {
         match logging_options {
             Some(val) => self.logging_options = Some(val.into()),
-            None => self.logging_options = None
+            None => self.logging_options = None,
         }
     }
-    
+
     /// Get a mutable reference to the registry credentials
-    pub fn registry_credentials_mut(&mut self) -> &mut HashMap<String, RegistryCredential>
-    {   
+    pub fn registry_credentials_mut(&mut self) -> &mut HashMap<String, RegistryCredential> {
         &mut self.registry_credentials
     }
 }
@@ -430,8 +434,7 @@ impl Runtime {
     }
 
     /// Get the runtime type (always "docker")
-    pub fn runtime_type(&self) -> &String 
-    {
+    pub fn runtime_type(&self) -> &String {
         &self.runtime_type
     }
 
@@ -457,25 +460,26 @@ impl ModuleSettings {
     }
 
     /// Get the create options
-    pub fn create_options(&self) -> &Option<String>
-    {
+    pub fn create_options(&self) -> &Option<String> {
         &self.create_options
     }
 
-    /// Set the image 
+    /// Set the image
     pub fn set_image<S>(&mut self, image: S)
     where
-        S: Into<String>
+        S: Into<String>,
     {
         self.image = image.into();
-    } 
+    }
 
     /// Set the create options
-    pub fn set_create_options(&mut self, create_options: Option<serde_json::Value>) -> Result<(), Box<dyn std::error::Error>>
-    {
+    pub fn set_create_options(
+        &mut self,
+        create_options: Option<serde_json::Value>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         match create_options {
             Some(val) => self.create_options = Some(serde_json::to_string(&val)?),
-            None => self.create_options = None
+            None => self.create_options = None,
         }
         Ok(())
     }
@@ -504,20 +508,17 @@ impl EdgeAgentSettings {
     }
 
     /// Get the environment variables
-    pub fn env(&self) -> &HashMap<String, EnvironmentVariable>
-    {
+    pub fn env(&self) -> &HashMap<String, EnvironmentVariable> {
         &self.env
     }
 
     /// Get a mutable reference to the settings
-    pub fn settings_mut(&mut self) -> &mut ModuleSettings
-    {
+    pub fn settings_mut(&mut self) -> &mut ModuleSettings {
         &mut self.settings
     }
 
     /// Get a mutable reference to the environment variables
-    pub fn env_mut(&mut self) -> &mut HashMap<String, EnvironmentVariable>
-    {
+    pub fn env_mut(&mut self) -> &mut HashMap<String, EnvironmentVariable> {
         &mut self.env
     }
 }
@@ -542,26 +543,22 @@ impl EdgeHubSettings {
     }
 
     /// Get the restart policy
-    pub fn restart_policy(&self) -> &RestartPolicy
-    {
+    pub fn restart_policy(&self) -> &RestartPolicy {
         &self.restart_policy
     }
 
     /// Get the status
-    pub fn status(&self) -> &Status
-    {
+    pub fn status(&self) -> &Status {
         &self.status
     }
 
     /// Get the settings
-    pub fn settings(&self) -> &ModuleSettings
-    {
+    pub fn settings(&self) -> &ModuleSettings {
         &self.settings
     }
 
     /// Get the environment variables
-    pub fn env(&self) -> &HashMap<String, EnvironmentVariable>
-    {
+    pub fn env(&self) -> &HashMap<String, EnvironmentVariable> {
         &self.env
     }
 
@@ -571,8 +568,7 @@ impl EdgeHubSettings {
     }
 
     /// Get a mutable reference to the environment variables
-    pub fn env_mut(&mut self) -> &mut HashMap<String, EnvironmentVariable>
-    {
+    pub fn env_mut(&mut self) -> &mut HashMap<String, EnvironmentVariable> {
         &mut self.env
     }
 }
@@ -605,7 +601,7 @@ impl SystemModules {
     pub fn edge_agent_mut(&mut self) -> &mut EdgeAgentSettings {
         &mut self.edge_agent
     }
-} 
+}
 
 /// The EdgeAgent module
 #[derive(Serialize, Deserialize)]
@@ -629,32 +625,27 @@ impl EdgeAgent {
     }
 
     /// Get the system modules
-    pub fn system_modules(&self) -> &SystemModules
-    {
+    pub fn system_modules(&self) -> &SystemModules {
         &self.system_modules
     }
 
     /// Get the modules
-    pub fn modules(&self) -> &HashMap<String, EdgeModule>
-    {
+    pub fn modules(&self) -> &HashMap<String, EdgeModule> {
         &self.modules
     }
 
     /// Get a mutable reference to the runtime
-    pub fn runtime_mut(&mut self) -> &mut Runtime
-    {
+    pub fn runtime_mut(&mut self) -> &mut Runtime {
         &mut self.runtime
     }
 
     /// Get a mutable reference to the system modules
-    pub fn system_modules_mut(&mut self) -> &mut SystemModules 
-    {
+    pub fn system_modules_mut(&mut self) -> &mut SystemModules {
         &mut self.system_modules
     }
 
     /// Get a mutable reference to the modules
-    pub fn modules_mut(&mut self) -> &mut HashMap<String, EdgeModule>
-    {
+    pub fn modules_mut(&mut self) -> &mut HashMap<String, EdgeModule> {
         &mut self.modules
     }
 }
@@ -668,14 +659,12 @@ pub struct StoreAndForwardConfiguration {
 
 impl StoreAndForwardConfiguration {
     /// Get the time to live seconds for the store and forward configuration
-    pub fn time_to_live_secs(&self) -> u64 
-    {
+    pub fn time_to_live_secs(&self) -> u64 {
         self.time_to_live_secs
     }
 
     /// Set the time to live seconds for the store and forward configuration
-    pub fn set_time_to_live_secs(&mut self, time_to_live_secs: u64)
-    {
+    pub fn set_time_to_live_secs(&mut self, time_to_live_secs: u64) {
         self.time_to_live_secs = time_to_live_secs;
     }
 }
@@ -689,34 +678,29 @@ pub struct EdgeHub {
     store_and_forward_configuration: StoreAndForwardConfiguration,
 }
 
-impl EdgeHub{
+impl EdgeHub {
     /// Get the schema version
-    pub fn schema_version(&self) -> &String
-    {
+    pub fn schema_version(&self) -> &String {
         &self.schema_version
     }
 
     /// Get the routes
-    pub fn routes(&self) -> &HashMap<String, String>
-    {
+    pub fn routes(&self) -> &HashMap<String, String> {
         &self.routes
     }
 
     /// Get the store and forward configuration
-    pub fn store_and_forward_configuration(&self) -> &StoreAndForwardConfiguration
-    {
+    pub fn store_and_forward_configuration(&self) -> &StoreAndForwardConfiguration {
         &self.store_and_forward_configuration
     }
 
     /// Get a mutable reference to the routes
-    pub fn routes_mut(&mut self) -> &mut HashMap<String, String>
-    {
+    pub fn routes_mut(&mut self) -> &mut HashMap<String, String> {
         &mut self.routes
     }
 
     /// Get a mutable reference to the store and forward configuration
-    pub fn store_and_forward_configuration_mut(&mut self) -> &mut StoreAndForwardConfiguration
-    {
+    pub fn store_and_forward_configuration_mut(&mut self) -> &mut StoreAndForwardConfiguration {
         &mut self.store_and_forward_configuration
     }
 }
@@ -730,30 +714,29 @@ pub struct ModulesContent {
 impl ModulesContent {
     /// Create a new module configuration
     pub fn new(edge_agent: EdgeAgent, edge_hub: EdgeHub) -> ModulesContent {
-        ModulesContent {edge_agent, edge_hub}
+        ModulesContent {
+            edge_agent,
+            edge_hub,
+        }
     }
 
     /// Get the EdgeAgent
-    pub fn edge_agent(&self) -> &EdgeAgent
-    {
+    pub fn edge_agent(&self) -> &EdgeAgent {
         &self.edge_agent
     }
 
     /// Get the EdgeHub
-    pub fn edge_hub(&self) -> &EdgeHub
-    {
+    pub fn edge_hub(&self) -> &EdgeHub {
         &self.edge_hub
     }
 
     /// Get a mutable reference to the EdgeAgent
-    pub fn edge_agent_mut(&mut self) -> &mut EdgeAgent
-    {
+    pub fn edge_agent_mut(&mut self) -> &mut EdgeAgent {
         &mut self.edge_agent
     }
 
     /// Get a mutable reference to the EdgeHub
-    pub fn edge_hub_mut(&mut self) -> &mut EdgeHub
-    {
+    pub fn edge_hub_mut(&mut self) -> &mut EdgeHub {
         &mut self.edge_hub
     }
 }
@@ -832,12 +815,18 @@ impl ModulesContentBuilder {
     /// let modules_content_builder = ModulesContentBuilder::new()
     ///     .registry_credential("some_credential", "username", "secret", "some-acr.acr");
     /// ```
-    pub fn registry_credential<S,T,U,V>(mut self, name: S, username: T, password: U, address: V) -> Self
+    pub fn registry_credential<S, T, U, V>(
+        mut self,
+        name: S,
+        username: T,
+        password: U,
+        address: V,
+    ) -> Self
     where
         S: Into<String>,
         T: Into<String>,
         U: Into<String>,
-        V: Into<String>
+        V: Into<String>,
     {
         self.registry_credentials.insert(
             name.into(),
@@ -874,7 +863,7 @@ impl ModulesContentBuilder {
     /// let modules_content_builder = ModulesContentBuilder::new()
     ///     .route("one-route", "FROM /messages/modules/SomeModule/outputs/* INTO $upstream");
     /// ```
-    pub fn route<S,T>(mut self, name: S, route: T) -> Self
+    pub fn route<S, T>(mut self, name: S, route: T) -> Self
     where
         S: Into<String>,
         T: Into<String>,
@@ -969,7 +958,7 @@ impl ModulesContentBuilder {
     ///     .edge_agent_env("variableOne", "variable")
     ///     .edge_agent_env("variableTwo", "variable");
     /// ```
-    pub fn edge_agent_env<S,T>(mut self, key: S, value: T) -> Self
+    pub fn edge_agent_env<S, T>(mut self, key: S, value: T) -> Self
     where
         S: Into<String>,
         T: Into<String>,
@@ -992,7 +981,7 @@ impl ModulesContentBuilder {
     ///     .edge_hub_env("variableOne", "variable")
     ///     .edge_hub_env("variableTwo", "variable");
     /// ```
-    pub fn edge_hub_env<S,T>(mut self, key: S, value: T) -> Self
+    pub fn edge_hub_env<S, T>(mut self, key: S, value: T) -> Self
     where
         S: Into<String>,
         T: Into<String>,
@@ -1023,7 +1012,8 @@ impl ModulesContentBuilder {
     ///     );
     /// ```
     pub fn edge_module(mut self, edge_module: EdgeModule) -> Self {
-        self.modules.insert(edge_module.module_id.clone(), edge_module);
+        self.modules
+            .insert(edge_module.module_id.clone(), edge_module);
         self
     }
 
@@ -1048,10 +1038,12 @@ impl ModulesContentBuilder {
                 )))?;
 
         let logging_options = match self.logging_options {
-            Some(val) => {
-                match serde_json::to_string(&val) {
-                    Ok(stringified_json) => Some(stringified_json),
-                    Err(_) => return Err(BuilderError::new(BuilderErrorType::IncorrectValue("logging_options")))
+            Some(val) => match serde_json::to_string(&val) {
+                Ok(stringified_json) => Some(stringified_json),
+                Err(_) => {
+                    return Err(BuilderError::new(BuilderErrorType::IncorrectValue(
+                        "logging_options",
+                    )))
                 }
             },
             None => None,
@@ -1074,21 +1066,25 @@ impl ModulesContentBuilder {
                 )))?;
 
         let edgeagent_create_options = match self.edge_agent_create_options {
-            Some(val) => {
-                match serde_json::to_string(&val) {
-                    Ok(stringified_json) => Some(stringified_json),
-                    Err(_) => return Err(BuilderError::new(BuilderErrorType::IncorrectValue("edgeagent_create_options")))
-                } 
+            Some(val) => match serde_json::to_string(&val) {
+                Ok(stringified_json) => Some(stringified_json),
+                Err(_) => {
+                    return Err(BuilderError::new(BuilderErrorType::IncorrectValue(
+                        "edgeagent_create_options",
+                    )))
+                }
             },
             None => None,
         };
 
         let edgehub_create_options = match self.edge_hub_create_options {
-            Some(val) => {
-                match serde_json::to_string(&val) {
-                    Ok(stringified_json) => Some(stringified_json),
-                    Err(_) => return Err(BuilderError::new(BuilderErrorType::IncorrectValue("edgehub_create_options")))
-                } 
+            Some(val) => match serde_json::to_string(&val) {
+                Ok(stringified_json) => Some(stringified_json),
+                Err(_) => {
+                    return Err(BuilderError::new(BuilderErrorType::IncorrectValue(
+                        "edgehub_create_options",
+                    )))
+                }
             },
             None => None,
         };
@@ -1140,8 +1136,8 @@ impl ModulesContentBuilder {
 #[cfg(test)]
 mod tests {
     use crate::configuration::modulescontent::{
-        EdgeModuleBuilder, ImagePullPolicy, ModulesContentBuilder, RestartPolicy, Status, EdgeAgent, EdgeHub,
-        RUNTIME_TYPE, SCHEMA_VERSION,
+        EdgeAgent, EdgeHub, EdgeModuleBuilder, ImagePullPolicy, ModulesContentBuilder,
+        RestartPolicy, Status, RUNTIME_TYPE, SCHEMA_VERSION,
     };
     use serde_json::json;
     use std::path::PathBuf;
@@ -1181,16 +1177,20 @@ mod tests {
         assert_eq!(edge_module.version, "1.0");
         assert_eq!(edge_module.status, Status::Running);
         assert_eq!(edge_module.restart_policy, RestartPolicy::Never);
-        assert_eq!(edge_module.settings.image, "some-image.containerregistry.url");
+        assert_eq!(
+            edge_module.settings.image,
+            "some-image.containerregistry.url"
+        );
         assert_eq!(edge_module.image_pull_policy, Some(ImagePullPolicy::Never));
 
-        assert_eq!(
-            edge_module.env.get("great").unwrap().value, "environment");
+        assert_eq!(edge_module.env.get("great").unwrap().value, "environment");
+
+        assert_eq!(edge_module.env.get("another").unwrap().value, "variable");
 
         assert_eq!(
-            edge_module.env.get("another").unwrap().value, "variable");
-
-        assert_eq!(edge_module.settings.create_options, Some(serde_json::to_string(&create_options)?));
+            edge_module.settings.create_options,
+            Some(serde_json::to_string(&create_options)?)
+        );
         Ok(())
     }
 
@@ -1340,8 +1340,7 @@ mod tests {
     }
 
     #[test]
-    fn edge_agent_should_deserialize_correctly() -> Result<(), Box<dyn std::error::Error>>
-    {
+    fn edge_agent_should_deserialize_correctly() -> Result<(), Box<dyn std::error::Error>> {
         let test_json_file = load_json_file("configuration/edgeagent_deserialization.json")?;
         let edge_agent: EdgeAgent = serde_json::from_value(test_json_file)?;
 
@@ -1350,13 +1349,18 @@ mod tests {
     }
 
     #[test]
-    fn edge_hub_should_deserialize_correctly() -> Result<(), Box<dyn std::error::Error>>
-    {
+    fn edge_hub_should_deserialize_correctly() -> Result<(), Box<dyn std::error::Error>> {
         let test_json_file = load_json_file("configuration/edgehub_deserialization.json")?;
         let edge_hub: EdgeHub = serde_json::from_value(test_json_file)?;
 
-        assert_eq!(edge_hub.routes.get("SomeRoute"), Some(&"FROM /messages/modules/SomeModule/outputs/* INTO $upstream".to_string()));
-        assert_eq!(edge_hub.routes.get("AnotherRoute"), Some(&"FROM /messages/modules/AnotherModule/outputs/* INTO $upstream".to_string()));
+        assert_eq!(
+            edge_hub.routes.get("SomeRoute"),
+            Some(&"FROM /messages/modules/SomeModule/outputs/* INTO $upstream".to_string())
+        );
+        assert_eq!(
+            edge_hub.routes.get("AnotherRoute"),
+            Some(&"FROM /messages/modules/AnotherModule/outputs/* INTO $upstream".to_string())
+        );
         Ok(())
     }
 }
