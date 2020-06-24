@@ -6,105 +6,37 @@ use std::fmt;
 use bytes::buf::BufExt as _;
 use hyper::{Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
+use serde::de::DeserializeOwned;
 use serde::Deserialize;
-use serde::de::{self, Deserializer, DeserializeOwned, Visitor, MapAccess, Unexpected};
 use serde_json::json;
 
+use crate::error::{IoTHubError, ParsingError};
 use crate::{IoTHubService, API_VERSION};
 
 /// The DirectMethodResponse struct contains the response
 /// from the IoT Hub when a direct method was invoked.
 #[derive(Deserialize)]
-pub struct DirectMethodResponse<T>
-{
+pub struct DirectMethodResponse<T> {
     pub status: u64,
-    pub payload: T
+    pub payload: T,
 }
 
-/// The message object within an DirectMethodError
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct DirectMethodErrorMessage {
-    pub error_code: u64,
-    pub tracking_id: String,
-    pub message: String,
-    pub info: serde_json::Value,
-    pub timestamp_utc: String
-}
-
-/// The DirectMethodError
 #[derive(Debug)]
-pub struct DirectMethodError {
-    pub message: DirectMethodErrorMessage,
-    pub exception_message: String
-}
-
-impl<'de> Deserialize<'de> for DirectMethodError {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: Deserializer<'de> {
-        #[derive(Deserialize)]
-        #[serde(field_identifier)]
-        enum Field { Message, ExceptionMessage };
-
-        struct DirectMethodErrorVisitor;
-
-        impl<'de> Visitor<'de> for DirectMethodErrorVisitor {
-            type Value = DirectMethodError;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct DirectMethodError")
-            }
-
-            fn visit_map<V>(self, mut map: V) -> Result<DirectMethodError, V::Error>
-            where V: MapAccess<'de>
-            {
-                let mut message: Option<DirectMethodErrorMessage> = None;
-                let mut exception_message: Option<String> = None;
-
-                while let Some(key) = map.next_key()? {
-                    match key {
-                        Field::Message => {
-                            if message.is_some() {
-                                return Err(de::Error::duplicate_field("Message"));
-                            }
-                            message = match serde_json::from_str(&map.next_value::<String>()?) {
-                                Ok(val) => Some(val),
-                                Err(err) => {
-                                    println!("{}", err);
-                                    return Err(de::Error::invalid_type(Unexpected::Other(&"non stringified json"), &"stringified json"));
-                                }
-                            };
-                        },
-                        Field::ExceptionMessage => {
-                            if exception_message.is_some() {
-                                return Err(de::Error::duplicate_field("ExceptionMessage"));
-                            }
-                            exception_message = Some(map.next_value()?);
-                        }
-
-                    }
-                }
-
-                let message = message.ok_or_else(|| de::Error::missing_field("Message"))?;
-                let exception_message = exception_message.ok_or_else(|| de::Error::missing_field("ExceptionMessage"))?;
-                Ok(DirectMethodError{ message, exception_message })
-            }
-        }
-
-        const FIELDS: &'static [&'static str] = &["Message", "ExceptionMessage"];
-        deserializer.deserialize_struct("DirectMethodError", FIELDS, DirectMethodErrorVisitor)
-    }
+pub enum DirectMethodError {
+    IoTHubError(IoTHubError),
+    ParsingError(ParsingError),
 }
 
 impl std::fmt::Display for DirectMethodError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{ error_code: {}, tracking_id: {}, message: {} }}", self.message.error_code, self.message.tracking_id, self.message.message)
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DirectMethodError::IoTHubError(val) => write!(f, "{}", val),
+            DirectMethodError::ParsingError(val) => write!(f, "{}", val),
+        }
     }
 }
 
-impl std::error::Error for DirectMethodError {
-
-}
+impl std::error::Error for DirectMethodError {}
 
 /// The DirectMethod struct contains all neccessary properties
 /// to be able to invoke the method.
@@ -206,13 +138,22 @@ impl<'a> DirectMethod<'a> {
         let mut response = client.request(request).await?;
         if !response.status().is_success() {
             let body = hyper::body::to_bytes(response.body_mut()).await.unwrap();
-            let error: DirectMethodError = serde_json::from_reader(body.reader())?;
-
-            return Err(Box::new(error));
+            let error: IoTHubError = serde_json::from_reader(body.reader())?;
+            return Err(Box::new(DirectMethodError::IoTHubError(error)));
         }
 
-        let body = hyper::body::to_bytes(response.body_mut()).await.unwrap();
-        Ok(serde_json::from_reader(body.reader())?)
+        let body = hyper::body::to_bytes(response.body_mut()).await?;
+        let result: serde_json::Result<DirectMethodResponse<T>> = serde_json::from_slice(&body);
+        match result {
+            Ok(value) => Ok(value),
+            Err(err) => {
+                let body_string = String::from_utf8_lossy(&body);
+                Err(Box::new(DirectMethodError::ParsingError(ParsingError {
+                    received_payload: body_string.to_string(),
+                    serialization_error: Box::new(err),
+                })))
+            }
+        }
     }
 }
 
@@ -238,27 +179,5 @@ mod tests {
         assert_eq!(direct_method.method_name, "GreatMethod");
         assert_eq!(direct_method.connect_time_out, 10);
         assert_eq!(direct_method.response_time_out, 20);
-    }
-
-    #[test]
-    fn directmethoderror_should_deserialize() -> Result<(), Box<dyn std::error::Error>> {
-        use serde_json::json;
-        use crate::directmethod::DirectMethodError;
-
-        let direct_method_error_str = "{
-            \"Message\": \"{ \\\"errorCode\\\": 12345, \\\"trackingId\\\": \\\"trackingid\\\", \\\"message\\\": \\\"an error occurred\\\", \\\"info\\\": {}, \\\"timestampUtc\\\": \\\"2020-06-21T16:38:35.671+00:00\\\"}\",
-            \"ExceptionMessage\": \"a great exception\"
-        }";
-
-        println!("{}", direct_method_error_str);
-
-        let direct_method_error: DirectMethodError = serde_json::from_str(direct_method_error_str)?;
-        assert_eq!(direct_method_error.message.error_code, 12345);
-        assert_eq!(direct_method_error.message.tracking_id, "trackingid");
-        assert_eq!(direct_method_error.message.message, "an error occurred");
-        assert_eq!(direct_method_error.message.info, json!({}));
-        assert_eq!(direct_method_error.message.timestamp_utc, "2020-06-21T16:38:35.671+00:00");
-        assert_eq!(direct_method_error.exception_message, "a great exception");
-        Ok(())
     }
 }
