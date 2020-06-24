@@ -7,7 +7,29 @@ use serde::de::{self};
 use serde::{Deserialize, Deserializer};
 use serde_json::json;
 
-use crate::{IoTHubService, API_VERSION};
+use crate::{error::IoTHubError, IoTHubService, API_VERSION};
+
+#[derive(Deserialize, Debug)]
+pub struct TwinError {
+    #[serde(rename = "Message")]
+    message: String,
+    #[serde(rename = "ExceptionMessage")]
+    exception_message: String,
+    #[serde(rename = "TrackingId")]
+    tracking_id: String,
+}
+
+impl std::fmt::Display for TwinError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{ message: {}, exception_message: {}, tracking_id: {} }}",
+            self.message, self.exception_message, self.tracking_id
+        )
+    }
+}
+
+impl std::error::Error for TwinError {}
 
 /// AuthenticationType of a module or device
 pub enum AuthenticationType {
@@ -148,37 +170,45 @@ pub struct ModuleTwin {
     pub x509_thumbprint: X509ThumbPrint,
 }
 
-pub struct TwinBuilder {
+pub struct DesiredTwin {
+    contents: serde_json::Value,
+}
+
+pub struct DesiredTwinBuilder {
     desired_properties: Option<serde_json::Value>,
     desired_tags: HashMap<String, String>,
 }
 
-impl TwinBuilder {
-    pub fn new(self) -> Self {
-        TwinBuilder {
+impl DesiredTwinBuilder {
+    pub fn new() -> Self {
+        DesiredTwinBuilder {
             desired_properties: None,
             desired_tags: HashMap::new(),
         }
     }
 
-    pub fn add_tag<T>(mut self, tag_name: T, tag_value: T)
+    pub fn add_tag<T>(mut self, tag_name: T, tag_value: T) -> Self
     where
         T: Into<String>,
     {
         self.desired_tags.insert(tag_name.into(), tag_value.into());
+        self
     }
 
-    pub fn properties(mut self, desired_properties: serde_json::Value) {
+    pub fn properties(mut self, desired_properties: serde_json::Value) -> Self {
         self.desired_properties = Some(desired_properties);
+        self
     }
 
-    pub fn build(self) -> serde_json::Value {
-        json!({
-            "properties": {
-                "desired": self.desired_properties.unwrap_or(json!({}))
-            },
-            "tags": self.desired_tags
-        })
+    pub fn build(self) -> DesiredTwin {
+        DesiredTwin {
+            contents: json!({
+                "propeties": {
+                    "desired": self.desired_properties.unwrap_or(json!({}))
+                },
+                "tags": self.desired_tags
+            }),
+        }
     }
 }
 
@@ -213,7 +243,7 @@ impl<'a> TwinManager<'a> {
         &self,
         uri: String,
         method: Method,
-        twin_patch: serde_json::Value,
+        desired_twin: DesiredTwin,
     ) -> Result<T, Box<dyn std::error::Error>>
     where
         for<'de> T: Deserialize<'de>,
@@ -225,11 +255,17 @@ impl<'a> TwinManager<'a> {
             .method(method)
             .header("Authorization", &self.iothub_service.sas_token)
             .header("Content-Type", "application/json")
-            .body(Body::from(serde_json::to_string(&twin_patch)?))?;
+            .body(Body::from(serde_json::to_string(&desired_twin.contents)?))?;
 
         let response = client.request(request).await?;
-        let body = hyper::body::aggregate(response).await?;
-        Ok(serde_json::from_reader(body.reader())?)
+        if !response.status().is_success() {
+            let body = hyper::body::to_bytes(response).await?;
+            let twin_error: TwinError = serde_json::from_slice(&body)?;
+            return Err(Box::new(twin_error));
+        }
+
+        let body = hyper::body::to_bytes(response).await?;
+        Ok(serde_json::from_slice(&body)?)
     }
 
     pub async fn get_device_twin<T>(
@@ -272,7 +308,7 @@ impl<'a> TwinManager<'a> {
     pub async fn update_device_twin<T>(
         &self,
         device_id: T,
-        twin_patch: serde_json::Value,
+        desired_twin: DesiredTwin,
     ) -> Result<DeviceTwin, Box<dyn std::error::Error>>
     where
         T: Into<String>,
@@ -284,14 +320,14 @@ impl<'a> TwinManager<'a> {
             API_VERSION
         );
 
-        self.update_twin(uri, Method::PATCH, twin_patch).await
+        self.update_twin(uri, Method::PATCH, desired_twin).await
     }
 
     pub async fn update_module_twin<S, T>(
         &self,
         device_id: S,
         module_id: T,
-        twin_patch: serde_json::Value,
+        desired_twin: DesiredTwin,
     ) -> Result<ModuleTwin, Box<dyn std::error::Error>>
     where
         S: Into<String>,
@@ -305,13 +341,13 @@ impl<'a> TwinManager<'a> {
             API_VERSION
         );
 
-        self.update_twin(uri, Method::PATCH, twin_patch).await
+        self.update_twin(uri, Method::PATCH, desired_twin).await
     }
 
     pub async fn replace_device_twin<T>(
         self,
         device_id: T,
-        twin_patch: serde_json::Value,
+        desired_twin: DesiredTwin,
     ) -> Result<DeviceTwin, Box<dyn std::error::Error>>
     where
         T: Into<String>,
@@ -323,14 +359,14 @@ impl<'a> TwinManager<'a> {
             API_VERSION
         );
 
-        self.update_twin(uri, Method::PUT, twin_patch).await
+        self.update_twin(uri, Method::PUT, desired_twin).await
     }
 
     pub async fn replace_module_twin<S, T>(
         &self,
         device_id: S,
         module_id: T,
-        twin_patch: serde_json::Value,
+        desired_twin: DesiredTwin,
     ) -> Result<ModuleTwin, Box<dyn std::error::Error>>
     where
         S: Into<String>,
@@ -344,6 +380,6 @@ impl<'a> TwinManager<'a> {
             API_VERSION
         );
 
-        self.update_twin(uri, Method::PUT, twin_patch).await
+        self.update_twin(uri, Method::PUT, desired_twin).await
     }
 }

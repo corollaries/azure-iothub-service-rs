@@ -150,6 +150,8 @@ impl std::fmt::Display for IoTHubError {
     }
 }
 
+impl std::error::Error for IoTHubError {}
+
 mod tests {
 
     #[test]
