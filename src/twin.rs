@@ -14,17 +14,15 @@ pub struct TwinError {
     #[serde(rename = "Message")]
     message: String,
     #[serde(rename = "ExceptionMessage")]
-    exception_message: String,
-    #[serde(rename = "TrackingId")]
-    tracking_id: String,
+    exception_message: String
 }
 
 impl std::fmt::Display for TwinError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{{ message: {}, exception_message: {}, tracking_id: {} }}",
-            self.message, self.exception_message, self.tracking_id
+            "{{ message: {}, exception_message: {} }}",
+            self.message, self.exception_message
         )
     }
 }
@@ -203,7 +201,7 @@ impl DesiredTwinBuilder {
     pub fn build(self) -> DesiredTwin {
         DesiredTwin {
             contents: json!({
-                "propeties": {
+                "properties": {
                     "desired": self.desired_properties.unwrap_or(json!({}))
                 },
                 "tags": self.desired_tags
